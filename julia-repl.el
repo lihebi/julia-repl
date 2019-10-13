@@ -39,11 +39,12 @@
 
 ;;; Code:
 
-(require 'term)
+(require 'comint)
 (require 'subr-x)
 (require 'cl-lib)
 (require 'compile)
 (require 'seq)
+(require 'julia-utils)
 
 ;;
 ;; customizations
@@ -221,8 +222,11 @@ Creates INFERIOR-BUFFER-NAME (‘make-term’ surrounds it with *s),
 running EXECUTABLE-PATH.
 
 Return the inferior buffer.  No setup is performed."
-  (apply #'make-term inferior-buffer-name executable-path nil
-         (julia-repl--split-switches)))
+  (let ((buffer (apply #'make-comint inferior-buffer-name executable-path nil
+                       (julia-repl--split-switches))))
+    (with-current-buffer buffer
+      (julia-true-repl-mode))
+    buffer))
 
 (defun julia-repl--setup-captures ()
   "Set up captured keys which are captured from ‘term’.
@@ -287,7 +291,9 @@ Return the buffer.  Buffer is not raised."
            (basedir (plist-get (cddr executable-record) :basedir))
            (inferior-buffer (julia-repl--start-inferior inferior-buffer-name
                                                         executable-path)))
-      (julia-repl--setup inferior-buffer basedir)
+      ;; Removing the setup, these cause the comint buffer accepting
+      ;; no input
+      ;; (julia-repl--setup inferior-buffer basedir)
       (setf (buffer-local-value 'julia-repl--inferior-buffer-suffix inferior-buffer) suffix)
       inferior-buffer)))
 
@@ -307,7 +313,7 @@ raised if not found."
   (if-let ((inferior-buffer
             (get-buffer (julia-repl--add-earmuffs
                          (julia-repl--inferior-buffer-name)))))
-      (when (term-check-proc inferior-buffer)
+      (when (comint-check-proc inferior-buffer)
         inferior-buffer)))
 
 ;;
@@ -450,16 +456,19 @@ A closing newline is sent according to NO-NEWLINE:
 Unless NO-BRACKETED-PASTE, bracketed paste control sequences are used."
   (let ((inferior-buffer (julia-repl-inferior-buffer)))
     (display-buffer inferior-buffer)
-    (with-current-buffer inferior-buffer
-      (unless no-bracketed-paste        ; bracketed paste start
-        (term-send-raw-string "\e[200~"))
-      (term-send-raw-string (string-trim string))
-      (when (eq no-newline 'prefix)
-        (setq no-newline current-prefix-arg))
-      (unless no-newline
-        (term-send-raw-string "\^M"))
-      (unless no-bracketed-paste        ; bracketed paste stop
-        (term-send-raw-string "\e[201~")))))
+    (let ((proc (get-buffer-process inferior-buffer)))
+      (with-current-buffer inferior-buffer
+        ;; insert the command and a newline so that the users know
+        ;; something is running
+        (save-excursion
+          (goto-char (process-mark proc))
+          (insert (string-trim string))
+          (insert ?\n)
+          (set-marker (process-mark proc) (point)))
+        ;; send string
+        (comint-send-string proc (string-trim string))
+        ;; julia wait for the newline before running the code
+        (comint-send-string proc "\n")))))
 
 (defun julia-repl-send-line ()
   "Send the current line to the Julia REPL term buffer.
@@ -489,9 +498,22 @@ and after."
           (-send-string (buffer-substring-no-properties
                          (region-beginning) (region-end)))
           (deactivate-mark))
-      (progn
-        (-send-string (thing-at-point 'line t))
-        (forward-line)))))
+      ;; if current line starts a block
+      (if (julia-current-line-block-start-p)
+          (let ((beg (line-beginning-position))
+                (end (julia-block-end-pos)))
+            (-send-string (buffer-substring-no-properties beg end))
+            ;; go to next sexp
+            (goto-char end)
+            (julia-safe-forward-sexp)
+            (julia-safe-backward-sexp))
+        ;; otherwise just this line
+        (progn
+          (-send-string (thing-at-point 'line t))
+          (forward-line)
+          ;; I stiill want to go to the next meaningful sexp
+          (julia-safe-forward-sexp)
+          (julia-safe-backward-sexp))))))
 
 (defun julia-repl-edit ()
   "Call @edit on the expression.
