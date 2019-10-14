@@ -4,7 +4,7 @@ using FileIO
 using FileIO: @format_str
 # using Printf
 
-export view
+export viewrepl
 
 greet() = print("Hello World!")
 

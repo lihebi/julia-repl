@@ -9,8 +9,16 @@ Install:
 
 #+BEGIN_SRC julia
 using Pkg;
-Pkg.add(PackageSpec(url="https://github.com/lihebi/julia-repl"));
+Pkg.add(PackageSpec(url="https://github.com/lihebi/julia-repl", rev="master"));
 #+END_SRC
+
+or
+
+#+BEGIN_EXAMPLE
+] add https://github.com/lihebi/julia-repl
+#+END_EXAMPLE
+
+
 
 Usage:
 
