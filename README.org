@@ -19,3 +19,6 @@ repl. The only problem is that the fill paragraph does not seem to
 work correctly.  For example, =@doc reshape=.
 
 ** TODO viewing images in repl
+
+** TODO filter input
+Remove comments

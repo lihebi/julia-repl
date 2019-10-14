@@ -58,12 +58,41 @@ beginning of the buffer."
   (set-mark (line-beginning-position))
   (goto-char (julia-block-end-pos)))
 
+(defun julia-repl--replace-images ()
+  "Replace all image patterns with actual images"
+  ;; Adapted from racket-mode repl
+  (with-silent-modifications
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward  "#<Image: \\(.+\\)>" nil t)
+        (message "Found match")
+        (let* ((file (match-string 1))
+               (begin (match-beginning 0))
+               (end (match-end 0)))
+          (delete-region begin end)
+          (goto-char begin)
+          (if (display-images-p)
+              (progn (message "inserting image")
+                     (insert-image (create-image file
+                                                 'imagemagick
+                                                 ;; 'png
+                                                 nil
+                                                 :scale 10
+                                                 ;; :height 100
+                                                 ) "[image]"))
+            (goto-char begin)
+            (insert "[image] ; use M-x racket-view-last-image to view")))))))
+
+(defun julia-repl--output-filter (_)
+  (julia-repl--replace-images))
+
 (define-derived-mode julia-true-repl-mode comint-mode "Julia-REPL"
   "Major mode for Julia REPL."
   (setq-local comint-use-prompt-regexp nil)
   (setq-local comint-prompt-read-only t)
   (setq-local comint-scroll-show-maximum-output nil) ;t slow for big outputs
   (setq-local mode-line-process nil)
+  (add-hook 'comint-output-filter-functions #'julia-repl--output-filter nil t)
   (compilation-setup t))
 
 (provide 'julia-utils)
