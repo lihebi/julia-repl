@@ -3,6 +3,21 @@
 This is my fork, mainly to use comint and add additional utilities to
 send code blocks.
 
+* Julia Package
+
+Install:
+
+#+BEGIN_SRC julia
+using Pkg;
+Pkg.add(PackageSpec(url="https://github.com/lihebi/julia-repl"));
+#+END_SRC
+
+Usage:
+
+#+BEGIN_SRC julia
+using EmacsREPL
+viewrepl(img)
+#+END_SRC
 
 * TODO-List
 

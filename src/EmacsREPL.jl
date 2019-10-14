@@ -8,7 +8,7 @@ export view
 
 greet() = print("Hello World!")
 
-function view(img)
+function viewrepl(img)
     # save("/tmp/a.png")
     path, io = Base.Filesystem.mktemp()
     # FileIO.save(FileIO.Stream(format"PNG", io), img)
