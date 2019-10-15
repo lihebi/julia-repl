@@ -569,6 +569,8 @@ If a buffer corresponds to a file and is not saved, the function prompts the use
 (defun julia-repl-doc ()
   "Documentation for symbol at point."
   (interactive)
+  ;; FIXME this should not be just thing-at-point, it might need to
+  ;; include the full Atom.serve
   (julia-repl--send-string (concat "@doc " (thing-at-point 'symbol t))))
 
 (defun julia-repl-cd ()
