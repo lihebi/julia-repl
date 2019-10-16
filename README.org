@@ -4,7 +4,43 @@ This is my fork, mainly to use comint and add additional utilities to
 send code blocks. The original README is
 [[file:README.orig.md][README.orig.md]].
 
-* Julia Packages
+* Compare julia-repl with Juno
+
+- Atom does not support full emacs bindings with reasonable
+  effort. After all, Atom is not Emacs.
+- Juno cannot evaluate arbitrary *inner* block. It will always
+  evaluate the whole block up to the top-level.  E.g. in the following
+  code, I can evaluate at any block level using C-c C-c. However,
+  C-enter will always evaluate the whole function defintion. To
+  evalute a custom region using Juno, you have to select the region,
+  which is not convenient.
+
+#+BEGIN_SRC julia
+function test()
+    for i=1:10
+        for j=2:8
+            println("hello")
+        end
+    end
+end
+#+END_SRC
+
+* New Features
+
+These are not submited to
+[[https://github.com/tpapp/julia-repl][julia-repl]] because they are
+not mature enough, and the change is not small, and might not suit
+anyone.
+
+** comint-mode by default
+comint-mode is better than term in the sense that:
+- you can freely move around the buffer without switching char/term
+  state (C-x C-j in term-mode)
+- you can implement more functionalities, e.g. replacing images
+
+** send by block
+C-c C-c will recognize open block, and send until the matched closing
+block.
 
 ** DONE viewing images in repl
    CLOSED: [2019-10-14 Mon 12:23]
@@ -28,61 +64,6 @@ Usage:
 using EmacsREPL
 viewrepl(img)
 #+END_SRC
-
-* TODO-List
-
-** TODO Look up symbol
-- LanguageServer.jl https://github.com/julia-vscode/LanguageServer.jl
-  - This is NOT used by Juno, so I would rather not use it.
-  - language-server-protocol https://github.com/Microsoft/language-server-protocol
-- non-Jedi's comment on using eglot: https://github.com/julia-vscode/LanguageServer.jl/wiki/Emacs
-- M-. issue in julia-repl https://github.com/tpapp/julia-repl/issues/50
-- lsp-julia https://github.com/non-Jedi/lsp-julia
-- lsp-mode https://github.com/emacs-lsp/lsp-mode
-
-The Juno's way:
-- backend Atom.jl implements the logic of goto symbol, by simply parse
-  the source code
-  - parse local source code for local bindings
-  - parse top level
-  - parse imported module's source code
-- While simple, I probably do not intent to rewrite those code, so I'm
-  going to just use Atom.jl, and write a simple wrapper around it.
-  - I need to invoke the server to run the backend daemon
-    - the server needs to know the specific file I'm in? Probably not,
-      I can just send the file path to it
-  - I need to have the interface to talk to the backend
-
-Maybe send a json over TCP containig a list with:
-
-#+BEGIN_EXAMPLE
-handle("gotosymbol") do data
-  @destruct [
-    word,
-    path || nothing,
-    # local context
-    column || 1,
-    row || 1,
-    startRow || 0,
-    context || "",
-    onlyGlobal || true,
-    # module context
-    mod || "Main",
-    text || "",
-  ] = data
-  gotosymbol(
-    word, path,
-    column, row, startRow, context, onlyGlobal,
-    mod, text
-  )
-end
-#+END_EXAMPLE
-
-So as a test:
-
-#+BEGIN_EXAMPLE
-["gotosymbol" "hello" "/path/to/file.jl" 12 23 0 "" true]
-#+END_EXAMPLE
 
 ** DONE comint term auto complete
    CLOSED: [2019-10-16 Wed 14:46]
@@ -144,6 +125,61 @@ Instead, I found I can probably just use
 =comint-redirect-results-list-from-process=, which roughly implement
 the same logic in a more elegent way, and of course more elegent on
 the user side.
+
+* TODO-List
+
+** TODO Look up symbol
+- LanguageServer.jl https://github.com/julia-vscode/LanguageServer.jl
+  - This is NOT used by Juno, so I would rather not use it.
+  - language-server-protocol https://github.com/Microsoft/language-server-protocol
+- non-Jedi's comment on using eglot: https://github.com/julia-vscode/LanguageServer.jl/wiki/Emacs
+- M-. issue in julia-repl https://github.com/tpapp/julia-repl/issues/50
+- lsp-julia https://github.com/non-Jedi/lsp-julia
+- lsp-mode https://github.com/emacs-lsp/lsp-mode
+
+The Juno's way:
+- backend Atom.jl implements the logic of goto symbol, by simply parse
+  the source code
+  - parse local source code for local bindings
+  - parse top level
+  - parse imported module's source code
+- While simple, I probably do not intent to rewrite those code, so I'm
+  going to just use Atom.jl, and write a simple wrapper around it.
+  - I need to invoke the server to run the backend daemon
+    - the server needs to know the specific file I'm in? Probably not,
+      I can just send the file path to it
+  - I need to have the interface to talk to the backend
+
+Maybe send a json over TCP containig a list with:
+
+#+BEGIN_EXAMPLE
+handle("gotosymbol") do data
+  @destruct [
+    word,
+    path || nothing,
+    # local context
+    column || 1,
+    row || 1,
+    startRow || 0,
+    context || "",
+    onlyGlobal || true,
+    # module context
+    mod || "Main",
+    text || "",
+  ] = data
+  gotosymbol(
+    word, path,
+    column, row, startRow, context, onlyGlobal,
+    mod, text
+  )
+end
+#+END_EXAMPLE
+
+So as a test:
+
+#+BEGIN_EXAMPLE
+["gotosymbol" "hello" "/path/to/file.jl" 12 23 0 "" true]
+#+END_EXAMPLE
 
 ** TODO get reference to symbol
 This is considerably harder for Juno's in-place parsing approach. Juno
