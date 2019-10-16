@@ -1,9 +1,10 @@
 #+TITLE: My fork of julia-repl
 
 This is my fork, mainly to use comint and add additional utilities to
-send code blocks.
+send code blocks. The original README is
+[[file:README.orig.md][README.orig.md]].
 
-* Julia Package
+* Julia Packages
 
 ** DONE viewing images in repl
    CLOSED: [2019-10-14 Mon 12:23]
@@ -30,7 +31,7 @@ viewrepl(img)
 
 * TODO-List
 
-** STARTED Look up symbol
+** TODO Look up symbol
 - LanguageServer.jl https://github.com/julia-vscode/LanguageServer.jl
   - This is NOT used by Juno, so I would rather not use it.
   - language-server-protocol https://github.com/Microsoft/language-server-protocol
@@ -95,7 +96,7 @@ python code wrapper to print out possible completion to the inferior
 python process, and parse the output, and build the completion list.
 
 This function is added to =completion-at-point-functions=, so that
-=completion-at-point= can pick it up. In *Python* buffer, it eavlautes to 
+=completion-at-point= can pick it up. In *Python* buffer, it eavlautes to
 
 #+BEGIN_EXAMPLE
 (python-shell-completion-at-point comint-completion-at-point t)
