@@ -40,6 +40,7 @@
 ;;; Code:
 
 (require 'comint)
+(require 'term)
 (require 'subr-x)
 (require 'cl-lib)
 (require 'compile)
@@ -76,6 +77,12 @@ Note that this affects all buffers using the ‘ansi-term’ map."
 (defcustom julia-repl-compilation-mode t
   "When non-nil, highlight error locations using function ‘compilation-shell-minor-mode’."
   :type 'boolean
+  :group 'julia-repl)
+
+(defcustom julia-repl-term-type 'comint
+  "Whether to use comint or term"
+  :type 'symbol
+  :options '(comint term)
   :group 'julia-repl)
 
 (defcustom julia-repl-save-buffer-on-send nil
@@ -222,10 +229,15 @@ Creates INFERIOR-BUFFER-NAME (‘make-term’ surrounds it with *s),
 running EXECUTABLE-PATH.
 
 Return the inferior buffer.  No setup is performed."
-  (let ((buffer (apply #'make-comint inferior-buffer-name executable-path nil
-                       (julia-repl--split-switches))))
-    (with-current-buffer buffer
-      (julia-true-repl-mode))
+  (let ((buffer (apply
+                 (if (eq julia-repl-term-type 'comint)
+                     #'make-comint
+                   #'make-term)
+                 inferior-buffer-name executable-path nil
+                 (julia-repl--split-switches))))
+    (when (eq julia-repl-term-type 'comint)
+      (with-current-buffer buffer
+        (julia-true-repl-mode)))
     buffer))
 
 (defun julia-repl--setup-captures ()
@@ -291,9 +303,9 @@ Return the buffer.  Buffer is not raised."
            (basedir (plist-get (cddr executable-record) :basedir))
            (inferior-buffer (julia-repl--start-inferior inferior-buffer-name
                                                         executable-path)))
-      ;; Removing the setup, these cause the comint buffer accepting
-      ;; no input
-      ;; (julia-repl--setup inferior-buffer basedir)
+      (when (not (eq julia-repl-term-type 'comint))
+        ;; This setup causes comint buffer accepting no input
+        (julia-repl--setup inferior-buffer basedir))
       (setf (buffer-local-value 'julia-repl--inferior-buffer-suffix inferior-buffer) suffix)
       inferior-buffer)))
 
@@ -313,7 +325,9 @@ raised if not found."
   (if-let ((inferior-buffer
             (get-buffer (julia-repl--add-earmuffs
                          (julia-repl--inferior-buffer-name)))))
-      (when (comint-check-proc inferior-buffer)
+      (when (if (eq julia-repl-term-type 'comint)
+                (comint-check-proc inferior-buffer)
+              (term-check-proc inferior-buffer))
         inferior-buffer)))
 
 ;;
@@ -460,15 +474,32 @@ Unless NO-BRACKETED-PASTE, bracketed paste control sequences are used."
       (with-current-buffer inferior-buffer
         ;; insert the command and a newline so that the users know
         ;; something is running
-        (save-excursion
-          (goto-char (process-mark proc))
-          (insert (string-trim string))
-          (insert ?\n)
-          (set-marker (process-mark proc) (point)))
-        ;; send string
-        (comint-send-string proc (string-trim string))
-        ;; julia wait for the newline before running the code
-        (comint-send-string proc "\n")))))
+        (if (eq julia-repl-term-type 'comint)
+            (progn (save-excursion
+                     (goto-char (process-mark proc))
+                     (insert (string-trim string))
+                     (insert ?\n)
+                     (set-marker (process-mark proc) (point)))
+                   ;; send string
+                   (comint-send-string proc (string-trim string))
+                   ;; julia wait for the newline before running the code
+                   (comint-send-string proc "\n"))
+          (with-current-buffer inferior-buffer
+            (unless no-bracketed-paste  ; bracketed paste start
+              (term-send-raw-string "\e[200~"))
+            (term-send-raw-string (string-trim string))
+            (when (eq no-newline 'prefix)
+              (setq no-newline current-prefix-arg))
+            (unless no-newline
+              (term-send-raw-string "\^M"))
+            (unless no-bracketed-paste  ; bracketed paste stop
+              (term-send-raw-string "\e[201~"))))))))
+
+;; (defun julia-repl--send-string (proc str)
+;;   (if (eq julia-repl-term-type 'comint)
+;;       (comint-send-string proc str)
+;;     ;; FIXME no proc?
+;;     (term-send-raw-string str)))
 
 (defun julia-repl-send-line ()
   "Send the current line to the Julia REPL term buffer.
