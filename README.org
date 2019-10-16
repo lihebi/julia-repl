@@ -83,13 +83,97 @@ So as a test:
 ["gotosymbol" "hello" "/path/to/file.jl" 12 23 0 "" true]
 #+END_EXAMPLE
 
+** DONE comint term auto complete
+   CLOSED: [2019-10-16 Wed 14:46]
+This is a must have.
 
+*** how elpy works?
+
+elpy is not implementing this itself. It is using python.el's. The
+function is =python-shell-completion-at-point=. Basically it sends a
+python code wrapper to print out possible completion to the inferior
+python process, and parse the output, and build the completion list.
+
+This function is added to =completion-at-point-functions=, so that
+=completion-at-point= can pick it up. In *Python* buffer, it eavlautes to 
+
+#+BEGIN_EXAMPLE
+(python-shell-completion-at-point comint-completion-at-point t)
+#+END_EXAMPLE
+
+elpy also has =comint-completion-at-point= in this list, but that
+seems to be very much just =completion-at-point=.
+
+And in the define-derived-mode inferior-python-mode comint-mode
+definition, add the hook:
+
+#+BEGIN_SRC elisp
+(add-hook 'completion-at-point-functions
+            #'python-shell-completion-at-point nil 'local)
+#+END_SRC
+
+As a side note, there is one weird thing about elpy: it has RPC and
+backend server in python. But looks like it only talk to the inferior
+python process. How the RPC process is using? If both processes are
+used, the send code function should send to both side? I only see code
+sending to inferior python process. Also, it is quite impossible to
+keep both process consistent, because user can execute arbitrary code
+in REPL.
+
+*** My plan about julia-repl
+
+I will need to write a Julia code wrapper for querying the
+information. Now the question is what API to use.
+
+To send string to inferior and hijack the output, the python.el is
+implementing some awkward code. In a nut shell, I'll need to
+1. set =comint-preoutput-filter-functions=, to a list of functions,
+   which accepts output and should return "", so nothing is inserted.
+2. To capture the output, this function should save the output
+   somewhere. Then I'll read that, and clean it before returning it.
+3. In addition, since this function is run async, I'll need to wait
+   for it to complete.
+4. Do the call to send-string, and wait until filter function gets all
+   output.
+To implement all these, python.el is keeping multiple variables to
+sync with functions and get results, and using loops to
+=accept-process-output= and check finish flag. This is not elegent.
+
+Instead, I found I can probably just use
+=comint-redirect-results-list-from-process=, which roughly implement
+the same logic in a more elegent way, and of course more elegent on
+the user side.
 
 ** TODO get reference to symbol
 This is considerably harder for Juno's in-place parsing approach. Juno
 does not seem to have this.
 
 ** TODO Juno's @progress
+
+** TODO flash region when evaluating
+
+See elpy as reference:
+
+#+BEGIN_SRC elisp
+(defun elpy-shell--flash-and-message-region (begin end)
+  "Displays information about code fragments sent to the shell.
+
+BEGIN and END refer to the region of the current buffer
+containing the code being sent. Displays a message with the first
+line of that region. If `eval-sexp-fu-flash-mode' is active,
+additionally flashes that region briefly."
+  (when (> end begin)
+    (save-excursion
+      (goto-char begin)
+      (end-of-line)
+      (if (<= end (point))
+          (message "Sent: %s" (string-trim (thing-at-point 'line)))
+        (message "Sent: %s..." (string-trim (thing-at-point 'line)))))
+    (when (bound-and-true-p eval-sexp-fu-flash-mode)
+      (multiple-value-bind (_bounds hi unhi _eflash)
+          (eval-sexp-fu-flash (cons begin end))
+        (eval-sexp-fu-flash-doit (lambda () t) hi unhi)))))
+#+END_SRC
 
 ** TODO Doc
 The default doc works fine, =C-c C-d= will send =@doc xxx= to the
