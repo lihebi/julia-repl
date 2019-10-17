@@ -212,14 +212,19 @@ beginning of the buffer."
                ;; "^\\[[[:digit:]]+\\] .* at [/[:word:]\\.]+:[[:digit:]]+$"
                0)))
     ;; extract relevent information
-    (mapcar (lambda (s)
-              (string-match reg s)
-              (let ((file (match-string-no-properties 1 s))
-                    (linum (match-string-no-properties 2 s)))
-                (xref-make (format "Match %s:%s" file linum)
-                           (xref-make-file-location
-                            file (string-to-number linum) 0))))
-            res)))
+    (seq-filter
+     #'identity
+     (mapcar (lambda (s)
+               (string-match reg s)
+               (let ((file (match-string-no-properties 1 s))
+                     (linum (match-string-no-properties 2 s)))
+                 (when (not (string-equal file "none"))
+                   (xref-make (format "Match %s:%s" file linum)
+                              (xref-make-file-location
+                               file (string-to-number linum) 0)))))
+             res))))
+
+
 
 (defun mytest ()
   (setq comint-redirect-verbose t)
