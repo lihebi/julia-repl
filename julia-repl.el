@@ -660,7 +660,10 @@ When called with a prefix argument, activate the home project."
     (,(kbd "C-c C-p")    . julia-repl-cd)
     (,(kbd "C-c C-a")    . julia-repl-activate-parent))
   (when-let ((filename (buffer-file-name)))
-    (setq-local default-directory (file-name-directory filename))))
+    (setq-local default-directory (file-name-directory filename))
+    ;; FIXME remove hook
+    (add-hook 'xref-backend-functions #'julia-repl--xref-backend nil t)))
+
 
 (provide 'julia-repl)
 ;;; julia-repl.el ends here

@@ -169,4 +169,62 @@ beginning of the buffer."
             nil 'local)
   (compilation-setup t))
 
+
+(defun julia-repl--xref-backend () 'xref-julia)
+
+(cl-defmethod xref-backend-definitions ((_backend (eql xref-julia)) symbol)
+  ;; (etags--xref-find-definitions symbol)
+  (julia-repl--get-definitions symbol))
+
+(cl-defmethod xref-backend-identifier-at-point ((_backend (eql xref-julia)))
+  ;; FIXME For some reason, julia-mode forward-symbol does not move
+  ;; across the dot. Thus for Flux.train!, it cannot correctly try to
+  ;; resolve the whole symbol. Thus I have to enter this manually.
+  (let ((thing
+         (thing-at-point 'symbol)))
+    (and thing (substring-no-properties thing))))
+
+(cl-defgeneric xref-backend-identifier-completion-table ((_backend (eql xref-julia)))
+  ;; I have to define this file, otherwise point on nothing does not
+  ;; read from minibuffer.
+  "Returns the completion table for identifiers."
+  (let ((thing (thing-at-point 'symbol)))
+    (and thing (substring-no-properties thing))))
+
+
+
+(defun julia-repl--get-definitions (symbol)
+  "Send SYMBOL to inferior julia process, get a list of file:line
+  make xref items"
+  (message "julia-repl--get-definitions: %s" symbol)
+  (let* ((code (format "println(methods(%s))" symbol))
+         (reg (rx line-start
+                  "[" (+ digit) "] "
+                  (* nonl)
+                  " at "
+                  (group-n 1 (+ (any word "/" ".")))
+                  ":"
+                  (group-n 2 (+ digit))))
+         (res (comint-redirect-results-list-from-process
+               (get-buffer-process (julia-repl-inferior-buffer))
+               code
+               reg
+               ;; "^\\[[[:digit:]]+\\] .* at [/[:word:]\\.]+:[[:digit:]]+$"
+               0)))
+    ;; extract relevent information
+    (mapcar (lambda (s)
+              (string-match reg s)
+              (let ((file (match-string-no-properties 1 s))
+                    (linum (match-string-no-properties 2 s)))
+                (xref-make (format "Match %s:%s" file linum)
+                           (xref-make-file-location
+                            file (string-to-number linum) 0))))
+            res)))
+
+(defun mytest ()
+  (setq comint-redirect-verbose t)
+  (julia-repl--get-definitions "findfirst")
+  (julia-repl--get-definitions "reshape")
+  (julia-repl--send-string "methods(reshape)"))
+
 (provide 'julia-utils)

@@ -38,6 +38,9 @@ comint-mode is better than term in the sense that:
   state (C-x C-j in term-mode)
 - you can implement more functionalities, e.g. replacing images
 
+There's also a WIP pull request by @dellison
+https://github.com/tpapp/julia-repl/pull/51
+
 ** send by block
 C-c C-c will recognize open block, and send until the matched closing
 block.
@@ -128,7 +131,43 @@ the user side.
 
 * TODO-List
 
-** TODO Look up symbol
+** DONE Look up symbol
+   CLOSED: [2019-10-17 Thu 13:51]
+
+
+*** DONE Using reflection
+    CLOSED: [2019-10-17 Thu 13:53]
+
+You can just use M-. to jump to the definition of functions. No local
+variable bindings.
+
+Under the hood, it is implemented as xref backend, and can be invokded
+by =xref-find-definitions=. The definition is retrieved from the
+inferior julia process, using reflection =methods=. The idea is from
+https://github.com/tpapp/julia-repl/issues/50
+
+#+BEGIN_SRC julia
+methods(findfirst)
+methods(reshape)
+methods(Flux.train!)
+#+END_SRC
+
+To add this as backend function for xref:
+
+#+BEGIN_SRC elisp
+(add-hook 'xref-backend-functions #'xxx--xref-backend nil t)
+(remove-hook 'xref-backend-functions #'xxx--xref-backend t)
+#+END_SRC
+
+Each xref item is
+#+BEGIN_SRC elisp
+(xref-make "name"
+           (xref-make-file-location filename
+                                    linum
+                                    colnum))
+#+END_SRC
+
+*** Using language server protocol
 - LanguageServer.jl https://github.com/julia-vscode/LanguageServer.jl
   - This is NOT used by Juno, so I would rather not use it.
   - language-server-protocol https://github.com/Microsoft/language-server-protocol
@@ -137,7 +176,7 @@ the user side.
 - lsp-julia https://github.com/non-Jedi/lsp-julia
 - lsp-mode https://github.com/emacs-lsp/lsp-mode
 
-The Juno's way:
+*** The Juno's way (Atom.jl)
 - backend Atom.jl implements the logic of goto symbol, by simply parse
   the source code
   - parse local source code for local bindings
