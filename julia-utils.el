@@ -199,14 +199,27 @@ beginning of the buffer."
   "Send SYMBOL to inferior julia process, get a list of file:line
   make xref items"
   (message "julia-repl--get-definitions: %s" symbol)
-  (let* ((code (format "println(methods(%s))" symbol))
-         (reg (rx line-start
-                  "[" (+ digit) "] "
-                  (* nonl)
-                  " at "
-                  (group-n 1 (+ (any word "/" ".")))
-                  ":"
-                  (group-n 2 (+ digit))))
+  (let* ((code (if (string-match-p (regexp-quote "@") symbol)
+                   ;; TODO support for macros. Some macros like @doc
+                   ;; @Flux.@treelike shows it, but some doesn't,
+                   ;; e.g. @doc @doc. I think when there is no doc, it
+                   ;; shows the definition site. Thus, it is
+                   ;; definitely possible to get def of macro. Just
+                   ;; look into the @doc implementation.
+                   (format "@doc %s" symbol)
+                 (format "println(methods(%s))" symbol)))
+         (reg (rx
+               ;; In the case of @doc for macros, there's some
+               ;; learning invisible garbage
+               ;;
+               ;; line-start
+               ;; (* blank)
+               "[" (+ digit) "] "
+               (* nonl)
+               " at "
+               (group-n 1 (+ (any word "/" ".")))
+               ":"
+               (group-n 2 (+ digit))))
          (res (comint-redirect-results-list-from-process
                (get-buffer-process (julia-repl-inferior-buffer))
                code
