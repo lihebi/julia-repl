@@ -79,7 +79,7 @@ beginning of the buffer."
                                                  'imagemagick
                                                  ;; 'png
                                                  nil
-                                                 :scale 10
+                                                 :scale 5
                                                  ;; :height 100
                                                  ) "[image]"))
             (goto-char begin)
