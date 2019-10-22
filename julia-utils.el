@@ -180,8 +180,10 @@ beginning of the buffer."
   ;; FIXME For some reason, julia-mode forward-symbol does not move
   ;; across the dot. Thus for Flux.train!, it cannot correctly try to
   ;; resolve the whole symbol. Thus I have to enter this manually.
-  (let ((thing
-         (thing-at-point 'symbol)))
+  (let ((thing (if (use-region-p)
+                   (buffer-substring-no-properties
+                    (region-beginning) (region-end))
+                 (thing-at-point 'symbol))))
     (and thing (substring-no-properties thing))))
 
 (cl-defgeneric xref-backend-identifier-completion-table ((_backend (eql xref-julia)))
