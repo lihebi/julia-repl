@@ -1,5 +1,5 @@
 using Flux.Data.MNIST
-using Images: channelview
+using Images: channelview, colorview, RGB
 using Metalhead
 
 using EmacsREPL: viewrepl
@@ -12,8 +12,11 @@ function test()
     viewrepl(imgs[1])
 
     # Converting to float
+    size(float.(imgs[1]))       # (28,28)
     typeof(float.(imgs[1])[1])     # Float64
     viewrepl(float.(imgs[1]))
+    size(float.(imgs[1])[:,:,:]) # 28,28,1
+    viewrepl(float.(imgs[1])[:,:,:])
 
     # CIFAR
     imgs = trainimgs(CIFAR10);

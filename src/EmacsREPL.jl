@@ -13,13 +13,23 @@ greet() = print("Hello World!")
 # import EmacsREPL.viewrepl
 
 function viewrepl(img::Array{Float32,3})
-    getRGB(X) = colorview(RGB, permutedims(X, (3,1,2)))
-    rgbimg = getRGB(img);
-    viewrepl(rgbimg)
+    if size(img)[3] == 3
+        getRGB(X) = colorview(RGB, permutedims(X, (3,1,2)))
+        rgbimg = getRGB(img);
+        viewrepl(rgbimg)
+    elseif size(img)[3] == 1
+        raw_viewrepl(img)
+    else
+        error("Unsupported channel size: ", size(img)[3])
+    end
+end
+
+function viewrepl(img)
+    raw_viewrepl(img)
 end
 
 # I need to customize based on the type of img
-function viewrepl(img)
+function raw_viewrepl(img)
     # save("/tmp/a.png")
     path, io = Base.Filesystem.mktemp()
     # FileIO.save(FileIO.Stream(format"PNG", io), img)
