@@ -2,12 +2,23 @@ module EmacsREPL
 
 using FileIO
 using FileIO: @format_str
+using Images: channelview, colorview, RGB
 # using Printf
 
 export viewrepl
 
 greet() = print("Hello World!")
 
+# I have to import it before extending it, this is used for debugging
+# import EmacsREPL.viewrepl
+
+function viewrepl(img::Array{Float32,3})
+    getRGB(X) = colorview(RGB, permutedims(X, (3,1,2)))
+    rgbimg = getRGB(img);
+    viewrepl(rgbimg)
+end
+
+# I need to customize based on the type of img
 function viewrepl(img)
     # save("/tmp/a.png")
     path, io = Base.Filesystem.mktemp()
