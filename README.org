@@ -131,6 +131,55 @@ the user side.
 
 * TODO-List
 
+** FIXME output freeze when jump to definition
+when I send get definition to background, the output freezes.
+
+#+BEGIN_SRC julia
+for i in 1:10
+    @show "hello"
+    sleep(1)
+end
+#+END_SRC
+
+** TODO separate repo for EmacsREPL.jl?
+
+** TODO get reference to symbol
+This is considerably harder for Juno's in-place parsing approach. Juno
+does not seem to have this.
+
+** TODO filter input
+Remove comments
+
+* References
+** Juno stack
+
+*** atom-ink
+inline evaluation results https://github.com/JunoLab/atom-ink
+
+*** TODO [#A] Atom.jl
+Juno side: backend https://github.com/JunoLab/Atom.jl
+
+This is where the gotosymbol is actually implemented.
+
+But where is serve() being called? It does not seem to be called
+here. So it is called by the atom plugin?
+
+*** TODO atom-julia-client
+Atom side https://github.com/JunoLab/atom-julia-client
+
+*** Juno.jl
+Julia code side: a light front-end for using @progress in your Julia
+code https://github.com/JunoLab/Juno.jl
+
+*** other
+
+- https://github.com/JuliaLang/atom-language-julia: basic language
+  support
+- http://github.com/JunoLab/CodeTools.jl: autocompletion and
+  evaluation
+
+* DONE-list
+
 ** DONE Look up symbol
    CLOSED: [2019-10-17 Thu 13:51]
 
@@ -220,13 +269,11 @@ So as a test:
 ["gotosymbol" "hello" "/path/to/file.jl" 12 23 0 "" true]
 #+END_EXAMPLE
 
-** TODO get reference to symbol
-This is considerably harder for Juno's in-place parsing approach. Juno
-does not seem to have this.
 
-** TODO Juno's @progress
+** DONE flash region when evaluating
+   CLOSED: [2019-11-01 Fri 15:59]
 
-** TODO flash region when evaluating
+EDIT: turns out I just need eval-sexp-fu package
 
 See elpy as reference:
 
@@ -251,37 +298,15 @@ additionally flashes that region briefly."
         (eval-sexp-fu-flash-doit (lambda () t) hi unhi)))))
 #+END_SRC
 
-** TODO Doc
+** DONE Juno's @progress
+   CLOSED: [2019-11-01 Fri 16:00]
+
+Use ProgressMeter
+** DONE Doc
+   CLOSED: [2019-11-01 Fri 16:01]
 The default doc works fine, =C-c C-d= will send =@doc xxx= to the
 repl. The only problem is that the fill paragraph does not seem to
 work correctly.  For example, =@doc reshape=.
 
-** TODO filter input
-Remove comments
-
-** Juno stack
-
-*** atom-ink
-inline evaluation results https://github.com/JunoLab/atom-ink
-
-*** TODO [#A] Atom.jl
-Juno side: backend https://github.com/JunoLab/Atom.jl
-
-This is where the gotosymbol is actually implemented.
-
-But where is serve() being called? It does not seem to be called
-here. So it is called by the atom plugin?
-
-*** TODO atom-julia-client
-Atom side https://github.com/JunoLab/atom-julia-client
-
-*** Juno.jl
-Julia code side: a light front-end for using @progress in your Julia
-code https://github.com/JunoLab/Juno.jl
-
-*** other
-
-- https://github.com/JuliaLang/atom-language-julia: basic language
-  support
-- http://github.com/JunoLab/CodeTools.jl: autocompletion and
-  evaluation
+This is caused by global-display-linum-mode. Seems to be fixed in the config
+there.
