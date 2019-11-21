@@ -167,7 +167,10 @@ beginning of the buffer."
             ;; #'python-shell-completion-at-point
             #'julia-repl--completion-at-point
             nil 'local)
-  (compilation-setup t))
+  (compilation-setup t)
+  ;; This seems to have to be after compilation-setup, otherwise no effect
+  ;; alias: comint-scroll-to-bottom-on-output
+  (setq-local comint-move-point-for-output nil))
 
 
 (defun julia-repl--xref-backend () 'xref-julia)
