@@ -12,11 +12,11 @@ greet() = print("Hello World!")
 # I have to import it before extending it, this is used for debugging
 # import EmacsREPL.viewrepl
 
-function viewrepl(img::Array{Float32,3})
+function viewrepl(img::Array{T,N}) where {T,N}
     if size(img)[3] == 3
         getRGB(X) = colorview(RGB, permutedims(X, (3,1,2)))
         rgbimg = getRGB(img);
-        viewrepl(rgbimg)
+        raw_viewrepl(rgbimg)
     elseif size(img)[3] == 1
         raw_viewrepl(img)
     else
@@ -24,9 +24,9 @@ function viewrepl(img::Array{Float32,3})
     end
 end
 
-function viewrepl(img)
-    raw_viewrepl(img)
-end
+# function viewrepl(img)
+#     raw_viewrepl(img)
+# end
 
 # I need to customize based on the type of img
 function raw_viewrepl(img)
