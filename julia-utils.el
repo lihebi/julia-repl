@@ -75,8 +75,13 @@ beginning of the buffer."
           (goto-char begin)
           (if (display-images-p)
               (progn (message "inserting image")
+                     ;; CAUTION need to have imagemagick backend library
+                     ;; installed. To test:
+                     (assert (image-type-available-p 'imagemagick)
+                             t "Backend imagemagick not available")
                      (insert-image (create-image file
                                                  'imagemagick
+                                                 ;; NOTE: 'png does not support scaling
                                                  ;; 'png
                                                  nil
                                                  :scale 5
