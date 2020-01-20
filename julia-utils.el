@@ -60,6 +60,11 @@ beginning of the buffer."
   (set-mark (line-beginning-position))
   (goto-char (julia-block-end-pos)))
 
+(defcustom julia-utils-scale 1.0
+  "Scale ratio of image."
+  :group 'julia-utils
+  :type 'float)
+
 (defun julia-repl--replace-images ()
   "Replace all image patterns with actual images"
   ;; Adapted from racket-mode repl
@@ -84,7 +89,7 @@ beginning of the buffer."
                                                  ;; NOTE: 'png does not support scaling
                                                  ;; 'png
                                                  nil
-                                                 :scale 5
+                                                 :scale julia-utils-scale
                                                  ;; :height 100
                                                  ) "[image]"))
             (goto-char begin)
@@ -182,7 +187,11 @@ beginning of the buffer."
 
 (cl-defmethod xref-backend-definitions ((_backend (eql xref-julia)) symbol)
   ;; (etags--xref-find-definitions symbol)
-  (julia-repl--get-definitions symbol))
+  ;;
+  ;; HACK I'm taking only the first one, so that I can directly jump without
+  ;; selection
+  (seq-take (julia-repl--get-definitions symbol) 1))
+
 
 (cl-defmethod xref-backend-identifier-at-point ((_backend (eql xref-julia)))
   ;; FIXME For some reason, julia-mode forward-symbol does not move
